@@ -1,56 +1,25 @@
 var express = require('express');
-var bcrypt = require('bcrypt');
 var bodyParser = require('body-parser')
-var knex = require('knex');
 var sqlite = require('sqlite3');
 
 var app = express();
 
 // ----- set up DB ----- //
 
+var knex = require('knex') ({
+  client: 'sqlite3',
+  connection: {
+    filename: './data/users_db.sqlite'
+  },
+  useNullAsDefault: true
+})
+
+var db = require('./db.js')(knex)
 
 // ----- set up middleware ----- //
 
 app.use(bodyParser.urlencoded({ extended: false }))  // parse application/x-www-form-urlencoded
 app.use(bodyParser.json())  // parse application/json
-
-// ----- dummy data ----- //
-var dummyJSONempty = { "users": [] }
-
-var dummyJSONone = { "users": [
-  {
-    "userID": 19,
-    "userName": "James Brown",
-    "userEmail": "jbrown@motown.com",
-    "money": 1000,
-    "password_hash": "afdslj2342342"
-  }
-] }
-
-
-var dummyJSONseveral = { "users": [
-  {
-    "userID": 19,
-    "userName": "James Brown",
-    "userEmail": "jbrown@motown.com",
-    "money": 1000,
-    "password_hash": "afdslj2342342"
-  },
-  {
-    "userID": 30,
-    "userName": "Michael Jackson",
-    "userEmail": "mj@gmail.com",
-    "money": 1000,
-    "password_hash": "asflkwenoi893"
-  },
-  {
-    "userID": 10,
-    "userName": "John Denver",
-    "userEmail": "johnd@gmail.com",
-    "money": 1000,
-    "password_hash": "alkjlsfjoiwna353324"
-  }
-] }
 
 // ----- routes ------ //
 
@@ -60,37 +29,46 @@ app.get('/', function (req, res) {
 });
 
 app.get('/users', function (req, res) {
-  // check if req.query has parameters, if so then
+  // check if it has a query string, if so then...
   if (Object.keys(req.query).length !== 0) {
     console.log("GET received on /users with parameters")
-    console.log(req.query)
-    // query DB and put result in queryResult, result will one record or no records
-    var queryResult = dummyJSONone // || dummyJSONempty
-    res.send("Query string received")
-    // res.json(queryResult)
+    console.log("req.query is: ", req.query)
+    // use knex to do 'SELECT * FROM users WHERE fieldY = paramX' to sqlite DB
+    db.findOne('users', { userEmail: req.query.email }, function (err, user) {
+        console.log("user is: ", user)
+        res.json({ "users": [ user ]})
+    })
   }
   else {
     console.log("GET received on /users")
     console.log(req.query)
-    res.json(dummyJSONseveral);
+    // use knex to do 'SELECT * FROM users' to sqlite DB
+    db.getAll('users', function (err, users) {
+      console.log('user', users)
+      res.json({ "users": users })
+      })
   }
 });
 
 app.get('/users/:id', function (req, res) {
   console.log("GET received on /users/:id")
-  // res.send('Hello Users with id');
-  res.json(dummyJSONone);
+  // use knex to do 'SELECT * FROM users WHERE userID=3' to sqlite DB
+  db.findOne('users', { userID: req.params.id }, function (err, user) {
+      console.log(user)
+      res.json({ "users": [ user ]})
+  })
 });
 
 app.post('/users', function (req, res) {
   console.log("POST received on /users")
-  // expecting req.body to equal a json object w/ one user but userid = null
   // create new user in DB
-  // if successful, return json object with one user but userid = real id value
-  // if Unsuccessful....
-  res.json(dummyJSONone);
-  console.log(req.body)
-
+  console.log("req.body is: ", req.body)
+  //use knex to insert specific user to DB and assign own unique user ID
+   db.add('users', req.body, function (err, user) {
+     console.log("err is: ", err)
+     console.log("user added to DB: ", user)
+     res.json({ "users": [ user ]})
+  })
 });
 
 // ----- setup of ports ----- //
