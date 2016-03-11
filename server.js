@@ -4,6 +4,8 @@ var sqlite = require('sqlite3');
 
 var app = express();
 
+var port = process.env.PORT || 3000
+
 // ----- set up DB ----- //
 
 var knex = require('knex') ({
@@ -73,6 +75,6 @@ app.post('/users', function (req, res) {
 
 // ----- setup of ports ----- //
 
-app.listen(3000, function () {
+app.listen(port, function () {
   console.log('Paint-market Users app listening on port 3000!');
 });
